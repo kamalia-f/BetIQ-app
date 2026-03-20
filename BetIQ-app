@@ -14,8 +14,8 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ── CONFIG ── replace these with your Supabase project values ──
-const SUPABASE_URL = "https://ocnvlffugryhlccicnnb.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_c_yneOvdm7Q27o_5D73iA_61NbObbQ";
+process.env.NEXT_PUBLIC_SUPABASE_URL;"https://ocnvlffugryhlccicnnb.supabase.co";
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; "sb_publishable_c_yneOvdm7Q27o_5D73iA_61NbObbQ";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ── PLATFORM FEE CONFIG (editable anytime) ──
