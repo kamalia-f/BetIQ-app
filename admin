@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#030712"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-title" content="BetIQ Admin"/>
+  <title>BetIQ Admin — Founder Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    :root{--g:#10b981;--gd:#059669;--bg:#030712;--s:#0d1117;--s2:#161b22;--b:rgba(255,255,255,0.06);--t:#f0f6fc;--t2:#8b949e;--t3:#484f58;--red:#f85149;--gold:#f0b429;--blue:#58a6ff;--purple:#a78bfa;}
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html,body{height:100%;overflow-x:hidden;}
+    body{background:var(--bg);font-family:'DM Sans',system-ui,sans-serif;color:var(--t);overscroll-behavior:none;}
+    h1,h2,h3{font-family:'Syne',sans-serif;}
+    select,input,textarea{font-family:'DM Sans',sans-serif;color-scheme:dark;}
+    ::-webkit-scrollbar{width:3px;}
+    ::-webkit-scrollbar-thumb{background:var(--red);border-radius:4px;}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)!important;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    .spin{animation:spin 1s linear infinite;}
+    .fade-in{animation:fadeIn 0.3s ease forwards;}
+    .slide-up{animation:slideUp 0.3s ease forwards;}
+    .btn{background:linear-gradient(135deg,var(--red),#dc2626);color:white;border:none;border-radius:12px;padding:13px;font-weight:700;font-size:14px;cursor:pointer;width:100%;font-family:'Syne',sans-serif;transition:all 0.2s;}
+    .btn:active{transform:scale(0.98);}
+    .btn:disabled{opacity:0.5;cursor:not-allowed;}
+    .btn-g{background:linear-gradient(135deg,var(--g),var(--gd));color:white;border:none;border-radius:12px;padding:12px;font-weight:700;font-size:13px;cursor:pointer;transition:all 0.2s;}
+    .btn-o{background:var(--s2);color:var(--t2);border:1px solid var(--b);border-radius:12px;padding:11px;font-weight:600;font-size:13px;cursor:pointer;transition:all 0.2s;width:100%;}
+    .inp{background:var(--s2);color:var(--t);border:1px solid var(--b);border-radius:12px;padding:13px 16px;font-size:14px;width:100%;transition:border-color 0.2s;}
+    .sel{background:var(--s2);color:var(--t);border:1px solid var(--b);border-radius:12px;padding:11px 14px;font-size:13px;width:100%;}
+    .card{background:var(--s);border:1px solid var(--b);border-radius:16px;padding:16px;}
+    .stat-card{background:var(--s);border:1px solid var(--b);border-radius:14px;padding:14px;text-align:center;}
+    .safe-bottom{padding-bottom:env(safe-area-inset-bottom,0px);}
+    .tab-btn{flex:1;padding:"8px 4px";border-radius:9px;border:none;cursor:pointer;font-weight:700;font-size:10px;transition:all 0.2s;font-family:'DM Sans',sans-serif;}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useCallback,useRef}=React;
+
+// ── CONFIG ──
+// ⚠️ CHANGE THIS TO YOUR EMAIL
+const ADMIN_EMAIL="kanawarl4002@gmail.com";
+const SB_URL="https://ocnvlffugryhlccicnnb.supabase.co";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jbnZsZmZ1Z3J5aGxjY2ljbm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5ODgzMTYsImV4cCI6MjA4OTU2NDMxNn0.18EBy-WbwmFG4meqjLFrxtFDZ6LI4kK_wPi4YCf0ld4";
+const{createClient}=supabase;
+const sb=createClient(SB_URL,SB_KEY);
+
+// ── ATOMS ──
+const Spinner=({size=28,color="var(--red)"})=><div style={{display:"flex",justifyContent:"center",padding:"24px 0"}}><div style={{width:size,height:size,border:`2px solid rgba(248,81,73,0.2)`,borderTopColor:color,borderRadius:"50%"}} className="spin"/></div>;
+
+const StatCard=({icon,label,value,sub,color="var(--g)"})=>(
+  <div className="stat-card">
+    <div style={{fontSize:24,marginBottom:6}}>{icon}</div>
+    <div style={{fontWeight:900,fontSize:22,color,fontFamily:"'Syne',sans-serif"}}>{value}</div>
+    <div style={{color:"var(--t2)",fontSize:11,marginTop:2}}>{label}</div>
+    {sub&&<div style={{color:"var(--t3)",fontSize:10,marginTop:1}}>{sub}</div>}
+  </div>
+);
+
+// ── LOGIN ──
+function AdminLogin({onLogin}){
+  const[email,setEmail]=useState("");
+  const[pw,setPw]=useState("");
+  const[loading,setLoading]=useState(false);
+  const[err,setErr]=useState("");
+
+  const login=async()=>{
+    setLoading(true);setErr("");
+    if(email!==ADMIN_EMAIL){setErr("❌ Access denied. Admin only.");setLoading(false);return;}
+    const{error}=await sb.auth.signInWithPassword({email,password:pw});
+    if(error){setErr(error.message);setLoading(false);return;}
+    onLogin();
+    setLoading(false);
+  };
+
+  return(
+    <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:"20%",left:"50%",transform:"translateX(-50%)",width:250,height:250,background:"radial-gradient(circle,rgba(248,81,73,0.08) 0%,transparent 70%)",pointerEvents:"none"}}/>
+      <div style={{width:"100%",maxWidth:380}} className="fade-in">
+        <div style={{textAlign:"center",marginBottom:32}}>
+          <div style={{width:72,height:72,borderRadius:20,background:"linear-gradient(135deg,#f85149,#dc2626)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 14px",boxShadow:"0 20px 60px rgba(248,81,73,0.35)"}}>👑</div>
+          <h1 style={{color:"white",fontSize:28,fontWeight:900,letterSpacing:"-0.5px"}}>BetIQ Admin</h1>
+          <p style={{color:"var(--t2)",fontSize:13,marginTop:4}}>Founder access only</p>
+        </div>
+
+        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:14}}>
+          <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Admin email" type="email" className="inp"/>
+          <input value={pw} onChange={e=>setPw(e.target.value)} placeholder="Password" type="password" className="inp" onKeyDown={e=>e.key==="Enter"&&login()}/>
+        </div>
+
+        {err&&<div style={{padding:"10px 14px",borderRadius:10,background:"rgba(248,81,73,0.1)",color:"#f85149",fontSize:13,marginBottom:12,border:"1px solid rgba(248,81,73,0.2)"}}>{err}</div>}
+
+        <button onClick={login} disabled={loading} className="btn">{loading?"Signing in...":"Enter Admin Panel →"}</button>
+
+        <div style={{background:"var(--s)",borderRadius:14,padding:14,border:"1px solid var(--b)",marginTop:16}}>
+          <p style={{color:"var(--t2)",fontSize:11,textAlign:"center",fontWeight:700,marginBottom:8,letterSpacing:"1px"}}>ADMIN CAPABILITIES</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+            {["📊 Platform overview","👥 Manage users","📣 Announcements","🛒 Oversee slips","💸 All transactions","⚙️ Platform settings","🏆 Manage challenges","🚫 Ban/suspend users"].map(f=><div key={f} style={{color:"var(--t2)",fontSize:11}}>{f}</div>)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── OVERVIEW TAB ──
+function Overview(){
+  const[stats,setStats]=useState({users:0,freeUsers:0,proUsers:0,eliteUsers:0,slipsSold:0,totalRevenue:0,subRevenue:0,fees:0,analyses:0,messages:0,activeToday:0});
+  const[loading,setLoading]=useState(true);
+  const[recentTx,setRecentTx]=useState([]);
+
+  useEffect(()=>{load();},[]);
+
+  const load=async()=>{
+    setLoading(true);
+    const[{data:profiles},{data:tx},{data:purchases},{data:analyses},{data:msgs}]=await Promise.all([
+      sb.from("profiles").select("plan,created_at,wallet"),
+      sb.from("transactions").select("*").order("created_at",{ascending:false}).limit(20),
+      sb.from("purchases").select("amount,platform_fee"),
+      sb.from("ai_analyses").select("id"),
+      sb.from("messages").select("id"),
+    ]);
+    const p=profiles||[];
+    const t=tx||[];
+    const pur=purchases||[];
+    const subRev=t.filter(x=>x.type==="subscription").reduce((s,x)=>s+(x.amount||0),0);
+    const fees=pur.reduce((s,x)=>s+(x.platform_fee||0),0);
+    const today=new Date().toDateString();
+    const activeToday=p.filter(x=>new Date(x.created_at).toDateString()===today).length;
+    setStats({users:p.length,freeUsers:p.filter(x=>x.plan==="Free").length,proUsers:p.filter(x=>x.plan==="Pro").length,eliteUsers:p.filter(x=>x.plan==="Elite").length,slipsSold:pur.length,totalRevenue:subRev+fees,subRevenue:subRev,fees,analyses:analyses?.length||0,messages:msgs?.length||0,activeToday});
+    setRecentTx(t.slice(0,10));
+    setLoading(false);
+  };
+
+  const txColor={topup:"#10b981",subscription:"#f0b429",slip_buy:"#58a6ff",slip_sale:"#a78bfa"};
+  const txIcon={topup:"💳",subscription:"⚡",slip_buy:"🛒",slip_sale:"💰"};
+
+  if(loading)return<Spinner/>;
+
+  return(
+    <div className="fade-in">
+      <div style={{marginBottom:16}}>
+        <h2 style={{fontSize:22,fontWeight:900,color:"white"}}>Platform Overview</h2>
+        <p style={{color:"var(--t2)",fontSize:12,marginTop:2}}>Live data from Supabase</p>
+      </div>
+
+      {/* Revenue cards */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+        <StatCard icon="💰" label="Total Revenue" value={`$${stats.totalRevenue.toFixed(0)}`} color="var(--g)"/>
+        <StatCard icon="✂️" label="Platform Fees" value={`$${stats.fees.toFixed(0)}`} color="var(--gold)"/>
+        <StatCard icon="⚡" label="Subscriptions" value={`$${stats.subRevenue.toFixed(0)}`} color="var(--blue)"/>
+        <StatCard icon="👥" label="Total Users" value={stats.users} sub={`${stats.activeToday} joined today`} color="var(--purple)"/>
+        <StatCard icon="🛒" label="Slips Sold" value={stats.slipsSold} color="#f97316"/>
+        <StatCard icon="🤖" label="AI Analyses" value={stats.analyses} color="var(--g)"/>
+      </div>
+
+      {/* Plan breakdown */}
+      <div className="card" style={{marginBottom:14}}>
+        <p style={{color:"white",fontWeight:700,fontSize:13,marginBottom:12}}>User Plans</p>
+        {[{l:"Free",v:stats.freeUsers,c:"#6b7280"},{l:"Pro",v:stats.proUsers,c:"var(--gold)"},{l:"Elite",v:stats.eliteUsers,c:"var(--g)"}].map(item=>(
+          <div key={item.l} style={{marginBottom:10}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+              <span style={{color:"var(--t2)",fontSize:12}}>{item.l}</span>
+              <span style={{color:item.c,fontWeight:700,fontSize:12}}>{item.v} users ({stats.users>0?Math.round(item.v/stats.users*100):0}%)</span>
+            </div>
+            <div style={{background:"rgba(255,255,255,0.06)",borderRadius:4,height:6}}>
+              <div style={{background:item.c,borderRadius:4,height:6,width:`${stats.users>0?(item.v/stats.users*100):0}%`,transition:"width 1s ease"}}/>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Recent transactions */}
+      <div className="card">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <p style={{color:"white",fontWeight:700,fontSize:13}}>Recent Transactions</p>
+          <button onClick={load} style={{background:"none",border:"none",color:"var(--g)",fontSize:12,cursor:"pointer",fontWeight:700}}>↻ Refresh</button>
+        </div>
+        {recentTx.map(tx=>(
+          <div key={tx.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid var(--b)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:16}}>{txIcon[tx.type]||"💫"}</span>
+              <div>
+                <p style={{color:"white",fontSize:12,fontWeight:600}}>{tx.description||tx.type}</p>
+                <p style={{color:"var(--t3)",fontSize:10}}>{new Date(tx.created_at).toLocaleString()}</p>
+              </div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <span style={{fontWeight:700,fontSize:12,color:txColor[tx.type]||"white"}}>${tx.amount?.toFixed(2)}</span>
+              {tx.fee>0&&<p style={{color:"var(--g)",fontSize:10}}>fee +${tx.fee?.toFixed(2)}</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── USERS TAB ──
+function Users(){
+  const[users,setUsers]=useState([]);
+  const[loading,setLoading]=useState(true);
+  const[search,setSearch]=useState("");
+  const[planFilter,setPlanFilter]=useState("All");
+  const[selected,setSelected]=useState(null);
+  const[saving,setSaving]=useState(false);
+
+  useEffect(()=>{load();},[]);
+
+  const load=async()=>{
+    setLoading(true);
+    const{data}=await sb.from("profiles").select("*").order("created_at",{ascending:false});
+    setUsers(data||[]);setLoading(false);
+  };
+
+  const filtered=users.filter(u=>{
+    const ms=!search||u.username?.toLowerCase().includes(search.toLowerCase())||u.email?.toLowerCase().includes(search.toLowerCase());
+    const mp=planFilter==="All"||u.plan===planFilter;
+    return ms&&mp;
+  });
+
+  const updateUser=async(id,updates)=>{
+    setSaving(true);
+    await sb.from("profiles").update(updates).eq("id",id);
+    await load();
+    setSelected(s=>s?{...s,...updates}:s);
+    setSaving(false);
+  };
+
+  const banUser=async(u)=>{
+    if(!confirm(`Ban ${u.username}? This will set their wallet to 0.`))return;
+    await updateUser(u.id,{wallet:0,plan:"Free",badge:"none"});
+    await createNotif(u.id,"⚠️ Account Action","Your account has been restricted by admin.");
+    alert("User banned.");
+  };
+
+  const createNotif=async(userId,title,body)=>{
+    await sb.from("notifications").insert({user_id:userId,type:"system",title,body,icon:"⚠️"});
+  };
+
+  const sendNotif=async(userId,username)=>{
+    const msg=prompt(`Send notification to ${username}:`);
+    if(!msg)return;
+    await createNotif(userId,`Message from Admin 👑`,msg);
+    alert("Notification sent!");
+  };
+
+  return(
+    <div className="fade-in">
+      <div style={{marginBottom:14}}>
+        <h2 style={{fontSize:22,fontWeight:900,color:"white"}}>Users</h2>
+        <p style={{color:"var(--t2)",fontSize:12,marginTop:2}}>{users.length} registered</p>
+      </div>
+
+      <div style={{display:"flex",gap:8,marginBottom:10}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search username or email..." className="inp" style={{flex:1}}/>
+        <select value={planFilter} onChange={e=>setPlanFilter(e.target.value)} className="sel" style={{width:90}}>
+          {["All","Free","Pro","Elite"].map(p=><option key={p}>{p}</option>)}
+        </select>
+      </div>
+
+      {loading?<Spinner/>:filtered.map(u=>(
+        <div key={u.id} className="card" style={{marginBottom:8}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer"}} onClick={()=>setSelected(selected?.id===u.id?null:u)}>
+            <div style={{width:40,height:40,borderRadius:12,background:`linear-gradient(135deg,${u.avatar_color||"#10b981"},${u.avatar_color||"#10b981"}99)`,display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:900,fontSize:14,flexShrink:0}}>{u.username?.slice(0,2).toUpperCase()}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{color:"white",fontWeight:700,fontSize:13}}>{u.username}</span>{u.badge!=="none"&&<span style={{background:u.badge==="elite"?"#10b981":"#f0b429",color:"white",fontSize:9,padding:"2px 6px",borderRadius:20,fontWeight:900}}>{u.badge}</span>}</div>
+              <p style={{color:"var(--t2)",fontSize:11,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.email}</p>
+            </div>
+            <div style={{textAlign:"right",flexShrink:0}}>
+              <span style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:20,background:u.plan==="Elite"?"rgba(16,185,129,0.15)":u.plan==="Pro"?"rgba(240,180,41,0.15)":"var(--s2)",color:u.plan==="Elite"?"#10b981":u.plan==="Pro"?"#f0b429":"var(--t2)"}}>{u.plan}</span>
+              <p style={{color:"var(--g)",fontSize:11,fontWeight:700,marginTop:2}}>${u.wallet?.toFixed(2)}</p>
+            </div>
+          </div>
+
+          {selected?.id===u.id&&(
+            <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid var(--b)"}} className="fade-in">
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
+                {[{l:"Win Rate",v:`${u.win_rate||0}%`,c:"var(--g)"},{l:"XP",v:u.xp||0,c:"var(--purple)"},{l:"Sold",v:u.total_sold||0,c:"var(--blue)"},{l:"Streak",v:`${u.streak||0}🔥`,c:"#f97316"},{l:"ROI",v:`+${u.roi||0}%`,c:"var(--gold)"},{l:"Referrals",v:u.total_referrals||0,c:"var(--g)"}].map(item=><div key={item.l} style={{background:"rgba(255,255,255,0.03)",borderRadius:10,padding:8,textAlign:"center"}}><div style={{color:item.c,fontWeight:900,fontSize:13}}>{item.v}</div><div style={{color:"var(--t3)",fontSize:10,marginTop:1}}>{item.l}</div></div>)}
+              </div>
+              {u.bio&&<p style={{color:"var(--t2)",fontSize:12,marginBottom:12,fontStyle:"italic"}}>"{u.bio}"</p>}
+
+              <p style={{color:"var(--t2)",fontSize:11,fontWeight:700,marginBottom:6}}>CHANGE PLAN</p>
+              <div style={{display:"flex",gap:6,marginBottom:10}}>
+                {["Free","Pro","Elite"].map(plan=><button key={plan} onClick={()=>updateUser(u.id,{plan,badge:plan==="Elite"?"elite":plan==="Pro"?"verified":"none"})} disabled={saving} style={{flex:1,padding:"8px",borderRadius:10,border:`1px solid ${u.plan===plan?"var(--g)":"var(--b)"}`,cursor:"pointer",fontWeight:700,fontSize:11,background:u.plan===plan?"rgba(16,185,129,0.1)":"var(--s2)",color:u.plan===plan?"var(--g)":"var(--t2)"}}>{plan}</button>)}
+              </div>
+
+              <p style={{color:"var(--t2)",fontSize:11,fontWeight:700,marginBottom:6}}>WALLET ADJUST</p>
+              <div style={{display:"flex",gap:6,marginBottom:10}}>
+                {[5,10,20,50].map(a=><button key={a} onClick={()=>updateUser(u.id,{wallet:(u.wallet||0)+a})} disabled={saving} style={{flex:1,padding:"7px",borderRadius:10,border:"1px solid var(--b)",cursor:"pointer",fontWeight:700,fontSize:11,background:"rgba(16,185,129,0.08)",color:"var(--g)"}}>+${a}</button>)}
+                {[-5,-10].map(a=><button key={a} onClick={()=>updateUser(u.id,{wallet:Math.max(0,(u.wallet||0)+a)})} disabled={saving} style={{flex:1,padding:"7px",borderRadius:10,border:"1px solid var(--b)",cursor:"pointer",fontWeight:700,fontSize:11,background:"rgba(248,81,73,0.08)",color:"var(--red)"}}>-${Math.abs(a)}</button>)}
+              </div>
+
+              <p style={{color:"var(--t2)",fontSize:11,fontWeight:700,marginBottom:6}}>BADGE</p>
+              <div style={{display:"flex",gap:6,marginBottom:12}}>
+                {["none","verified","elite"].map(b=><button key={b} onClick={()=>updateUser(u.id,{badge:b})} disabled={saving} style={{flex:1,padding:"7px",borderRadius:10,border:`1px solid ${u.badge===b?"var(--g)":"var(--b)"}`,cursor:"pointer",fontWeight:700,fontSize:10,background:u.badge===b?"rgba(16,185,129,0.1)":"var(--s2)",color:u.badge===b?"var(--g)":"var(--t2)",textTransform:"capitalize"}}>{b}</button>)}
+              </div>
+
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                <button onClick={()=>sendNotif(u.id,u.username)} className="btn-g">📨 Send Notif</button>
+                <button onClick={()=>banUser(u)} style={{p
